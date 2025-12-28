@@ -10,6 +10,13 @@
 	let topicDetails = $state<any>(null);
 	let ready = $state<boolean>(false);
 
+	// Track comments pending to be marked as read (for debouncing)
+	let pendingReadIds = $state<Set<number>>(new Set());
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// Intersection Observer instance (module scope so we can observe new comments)
+	let observer: IntersectionObserver | null = null;
+
 	const fetchTopicDetails = async () => {
 		const response = await fetch(`/api/topics/${id}`);
 		if (response.ok) {
@@ -20,6 +27,53 @@
 		} else {
 			alert('Failed to fetch topic details');
 		}
+	};
+
+	const markCommentsAsRead = async (commentIds: number[]) => {
+		if (commentIds.length === 0 || !$user) return;
+
+		try {
+			await fetch('/api/comments/read', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ commentIds })
+			});
+
+			// Update local state to mark comments as read
+			$topicComments = $topicComments.map((c) =>
+				commentIds.includes(c.id) ? { ...c, isRead: true } : c
+			);
+		} catch (error) {
+			console.error('Error marking comments as read:', error);
+		}
+	};
+
+	const flushPendingReads = () => {
+		if (pendingReadIds.size > 0) {
+			const ids = Array.from(pendingReadIds);
+			pendingReadIds = new Set();
+			markCommentsAsRead(ids);
+		}
+	};
+
+	const queueCommentAsRead = (commentId: number) => {
+		pendingReadIds = new Set([...pendingReadIds, commentId]);
+
+		// Debounce: wait 500ms before sending to batch multiple reads
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(flushPendingReads, 500);
+	};
+
+	const observeNewComment = (commentId: number) => {
+		if (!observer) return;
+
+		// Wait for DOM to update, then observe the new comment
+		setTimeout(() => {
+			const el = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
+			if (el && observer) {
+				observer.observe(el);
+			}
+		}, 50);
 	};
 
 	const handleDeleteComment = (commentId: number) => async () => {
@@ -40,6 +94,31 @@
 	onMount(() => {
 		fetchTopicDetails().then(() => {
 			ready = true;
+
+			// Set up Intersection Observer after DOM is ready
+			setTimeout(() => {
+				observer = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (entry.isIntersecting) {
+								const commentId = parseInt(entry.target.getAttribute('data-comment-id') || '0');
+								const comment = $topicComments.find((c) => c.id === commentId);
+
+								// Only mark as read if not already read
+								if (comment && !comment.isRead) {
+									queueCommentAsRead(commentId);
+								}
+								observer?.unobserve(entry.target);
+							}
+						});
+					},
+					{ threshold: 0.5 }
+				);
+
+				document.querySelectorAll('.comment[data-comment-id]').forEach((el) => {
+					observer?.observe(el);
+				});
+			}, 100);
 		});
 
 		const socket = getSocket();
@@ -49,7 +128,10 @@
 				console.log('newComment received:', data);
 				if (data.createdBy === $user?.displayName) return;
 				console.log('Adding new comment to list:', data);
-				$topicComments = [...$topicComments, data.comment];
+				// New comments from others start as unread
+				$topicComments = [...$topicComments, { ...data.comment, isRead: false }];
+				// Observe the new comment for read tracking
+				observeNewComment(data.comment.id);
 			});
 
 			socket.on('deleteComment', (data) => {
@@ -63,6 +145,8 @@
 				socket.off('newComment');
 				socket.off('deleteComment');
 			}
+			if (debounceTimer) clearTimeout(debounceTimer);
+			if (observer) observer.disconnect();
 			$topicComments = [];
 			topicDetails = null;
 		};
@@ -80,8 +164,8 @@
 		{#if $topicComments.length > 0}
 			<ul>
 				{#each $topicComments as comment}
-					<div class="comment">
-						<p>{comment.content}</p>
+					<div class="comment" class:unread={!comment.isRead} data-comment-id={comment.id}>
+						<p class="comment-content">{comment.content}</p>
 						<div class="comment-footer">
 							<div>
 								<span>By: <span class="comment-created-by">{comment.createdBy}</span></span>
@@ -124,6 +208,16 @@
 		border: 1px solid brown;
 		padding: 8px;
 		margin-bottom: 8px;
+		transition: border-left 0.2s ease;
+	}
+
+	.comment.unread {
+		border-left: 4px solid lightgreen;
+	}
+
+	.comment-content {
+		white-space: pre-wrap;
+		word-wrap: break-word;
 	}
 
 	button {

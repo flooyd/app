@@ -10,7 +10,7 @@ export const user = writable<
 export const page = writable<string>('home');
 
 export const topics = writable<Array<{
-	commentCount: any;
+    commentCount: any;
     id: number;
     title: string;
     createdBy: string;
@@ -24,4 +24,5 @@ export const topicComments = writable<Array<{
     createdBy: string;
     createdAt: Date;
     avatar: string | null;
-}>>([]);
+    isRead?: boolean;
+}>>([])

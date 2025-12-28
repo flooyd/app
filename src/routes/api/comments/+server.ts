@@ -1,16 +1,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { comment } from '$lib/server/db/schema';
+import { comment, commentRead } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-    if(!locals.user) {
+    if (!locals.user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-        const {content, topicId } = await request.json();
+        const { content, topicId } = await request.json();
         if (!content || !topicId) {
             return json({ error: 'Comment content and topic ID are required' }, { status: 400 });
         }
@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             })
             .returning();
 
-            global.io?.emit('newComment', { comment: { ...newComments[0], createdBy: locals.user.displayName, avatar: locals.user.avatar } });
+        global.io?.emit('newComment', { comment: { ...newComments[0], createdBy: locals.user.displayName, avatar: locals.user.avatar } });
 
         return json({ comment: newComments[0] });
     } catch (error) {
@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
-    if(!locals.user) {
+    if (!locals.user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -62,6 +62,11 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Forbidden' }, { status: 403 });
         }
 
+        // Delete all commentRead entries first (foreign key constraint)
+        await db
+            .delete(commentRead)
+            .where(eq(commentRead.commentId, commentId));
+
         await db
             .delete(comment)
             .where(eq(comment.id, commentId));
@@ -74,4 +79,3 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
     }
 };
 
-        
