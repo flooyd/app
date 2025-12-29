@@ -31,6 +31,7 @@ io.on('connection', (socket) => {
 global.io = io;
 
 // Let SvelteKit handle everything else
+app.set('trust proxy', true);
 app.use(handler);
 
 server.listen(port, () => {
