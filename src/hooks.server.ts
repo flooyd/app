@@ -32,7 +32,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 async function verifySessionToken(token: string): Promise<{ id: number; username: string; displayName: string; hashedPassword: string; avatar: string | null } | null> {
     try {
-        const decoded = jwt.verify(token, 'your_secret_key') as { id: number; username: string; displayName: string; hashedPassword: string; avatar: string | null };
+        const secret = process.env.JWT_SECRET || 'your_secret_key';
+        const decoded = jwt.verify(token, secret) as { id: number; username: string; displayName: string; hashedPassword: string; avatar: string | null };
         return decoded;
     } catch (error) {
         console.error('Session verification failed:', error);
