@@ -9,4 +9,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: ORIGIN
-        value: https://app-qxx4.onrender.com/
+        value: https://app-qxx4.onrender.com

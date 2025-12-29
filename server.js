@@ -8,11 +8,13 @@ const app = express();
 const server = createServer(app);
 
 // Initialize Socket.IO with proper CORS and credentials
+const origin = process.env.ORIGIN || 'http://localhost:5173';
 const io = new Server(server, {
     cors: {
-        origin: process.env.ORIGIN || 'http://localhost:5173',
+        origin: origin,
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: true,
+        allowedHeaders: ['Content-Type']
     }
 });
 
@@ -31,8 +33,12 @@ io.on('connection', (socket) => {
 // Make io globally available (same as dev setup)
 global.io = io;
 
-// Let SvelteKit handle everything else
+// Parse request bodies and set trust proxy
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', true);
+
+// Let SvelteKit handle everything else
 app.use(handler);
 
 server.listen(port, () => {

@@ -6,10 +6,13 @@ import jwt from 'jsonwebtoken';
 
 export const handle: Handle = async ({ event, resolve }) => {
     const sessionToken = event.cookies.get('session');
-    console.log('handle', sessionToken);
+    console.log('Hooks.server.ts - Session token:', sessionToken);
+    console.log('Hooks.server.ts - All cookies:', event.request.headers.get('cookie'));
+    
     if (sessionToken) {
         try {
             const userToken = await verifySessionToken(sessionToken);
+            console.log('Hooks.server.ts - Verified token:', userToken);
 
             if (userToken) {
                 const userData = await db
@@ -20,6 +23,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
                 if (userData.length > 0) {
                     event.locals.user = userData[0];
+                    console.log('Hooks.server.ts - User set to locals:', userData[0].username);
                 }
             }
         } catch (error) {
