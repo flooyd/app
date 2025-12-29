@@ -160,7 +160,7 @@
 
 <style>
 	.topics-container {
-		padding: 8px;
+		padding: 20px;
 		overflow-y: auto;
 		overflow-x: auto;
 		height: calc(100vh - 45px);
