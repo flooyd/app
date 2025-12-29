@@ -33,12 +33,8 @@ io.on('connection', (socket) => {
 // Make io globally available (same as dev setup)
 global.io = io;
 
-// Parse request bodies and set trust proxy
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.set('trust proxy', true);
-
 // Let SvelteKit handle everything else
+app.set('trust proxy', true);
 app.use(handler);
 
 server.listen(port, () => {
