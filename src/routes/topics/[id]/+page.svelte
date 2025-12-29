@@ -198,7 +198,7 @@
 	.comments-container {
 		height: calc(100vh - 102px);
 		overflow-y: auto;
-		padding: 8px;
+		padding: 20px;
 	}
 
 	.comment {

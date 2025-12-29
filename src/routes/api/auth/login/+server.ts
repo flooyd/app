@@ -29,17 +29,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         const sesionToken = generateSessionToken(existingUsers[0]);
 
         cookies.set('session', sesionToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 30,
             path: '/',
         });
 
         cookies.set('user', JSON.stringify(existingUsers[0]), {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 30,
             path: '/',
         })
