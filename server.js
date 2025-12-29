@@ -7,11 +7,12 @@ const port = process.env.PORT || 3000;
 const app = express();
 const server = createServer(app);
 
-// Initialize Socket.IO
+// Initialize Socket.IO with proper CORS and credentials
 const io = new Server(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
+        origin: process.env.ORIGIN || 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true
     }
 });
 
