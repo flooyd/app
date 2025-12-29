@@ -11,6 +11,7 @@ export const page = writable<string>('home');
 
 export const topics = writable<Array<{
     commentCount: any;
+    unreadCount: number;
     id: number;
     title: string;
     createdBy: string;

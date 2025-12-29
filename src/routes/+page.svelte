@@ -11,6 +11,7 @@
 	let ready = $state<boolean>(false);
 	let showSettings = $state<boolean>(false);
 	let cellPadding = $state<number>(8);
+	let cellAlign = $state<string>('left');
 
 	const handleDelete = async (id: number) => {
 		const response = await fetch(`/api/topics`, {
@@ -34,6 +35,7 @@
 		$topics = data.topics;
 		$topics.forEach((topic) => {
 			topic.commentCount = data.comments.find((c: any) => c.topicId === topic.id)?.count || 0;
+			topic.unreadCount = data.unreadCounts?.find((u: any) => u.topicId === topic.id)?.count || 0;
 		});
 		$topics = $topics;
 		console.log($topics);
@@ -64,7 +66,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class='topics-container' transition:fly={{ x: -1000, duration: 150 }}>
+	<div class="topics-container" transition:fly={{ x: -1000, duration: 150 }}>
 		{#if $user}
 			<div class="top-bar">
 				<div class="flex-section">
@@ -84,17 +86,25 @@
 						Cell Padding: {cellPadding}px
 						<input type="number" min="0" max="32" bind:value={cellPadding} />
 					</div>
+					<div class="flex-section">
+						Cell Align: {cellAlign}
+						<input type="text" bind:value={cellAlign} />
+					</div>
 				</div>
 			{/if}
 
 			{#if $topics.length > 0}
-				<div class="table-container" style="--cell-padding: {cellPadding}px;">
+				<div
+					class="table-container"
+					style="--cell-padding: {cellPadding}px; --cell-align: {cellAlign}"
+				>
 					<table>
 						<thead>
 							<tr>
 								<th>Title</th>
 								<th>Created By</th>
 								<th>Comments</th>
+								<th>Unread</th>
 								<th>Created At</th>
 								<th>Actions</th>
 							</tr>
@@ -118,6 +128,13 @@
 										</div>
 									</td>
 									<td>{topic.commentCount}</td>
+									<td class:has-unread={topic.unreadCount > 0}>
+										{#if topic.unreadCount > 0}
+											<span class="unread-badge">{topic.unreadCount}</span>
+										{:else}
+											0
+										{/if}
+									</td>
 									<td>{new Date(topic.createdAt).toLocaleString()}</td>
 									<td onclick={(e) => e.stopPropagation()}>
 										{#if $user.username === topic.createdBy}
@@ -181,7 +198,7 @@
 	th,
 	td {
 		padding: var(--cell-padding, 8px);
-		text-align: left;
+		text-align: var(--cell-align, left);
 		border-right: 1px solid brown;
 		border-bottom: 1px solid brown;
 		vertical-align: middle;
@@ -204,7 +221,22 @@
 	.td-flex {
 		display: flex;
 		align-items: center;
+		justify-content: var(--cell-align, left);
 		gap: 8px;
 		white-space: nowrap;
+	}
+
+	.has-unread {
+		color: lightgreen;
+		font-weight: bold;
+	}
+
+	.unread-badge {
+		background: lightgreen;
+		color: black;
+		padding: 2px 8px;
+		border-radius: 12px;
+		font-size: 0.85em;
+		font-weight: bold;
 	}
 </style>

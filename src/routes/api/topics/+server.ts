@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { topic, user, comment } from '$lib/server/db/schema';
-import { eq, desc, count } from 'drizzle-orm';
+import { topic, user, comment, commentRead } from '$lib/server/db/schema';
+import { eq, desc, count, sql, and, isNull } from 'drizzle-orm';
 
-export const GET: RequestHandler = async ({ }) => {
+export const GET: RequestHandler = async ({ locals }) => {
     try {
         const topics = await db
             .select({
@@ -17,19 +17,33 @@ export const GET: RequestHandler = async ({ }) => {
             .from(topic)
             .leftJoin(user, eq(topic.createdBy, user.id))
             .orderBy(desc(topic.createdAt));
-        
-        const commentCounts: Record<number, number> = {};
 
-        // Fetch comment counts for each topic
-        const comments = await db
+        // Fetch comment counts AND unread counts in a single query
+        // Uses LEFT JOIN on commentRead to find which comments the user has read
+        const userId = locals.user?.id ?? null;
+
+        const commentStats = await db
             .select({
                 topicId: comment.topicId,
-                count: count(comment.id).as('count'),
+                commentCount: count(comment.id),
+                unreadCount: userId
+                    ? sql<number>`SUM(CASE WHEN ${commentRead.commentId} IS NULL THEN 1 ELSE 0 END)`
+                    : sql<number>`0`,
             })
             .from(comment)
+            .leftJoin(
+                commentRead,
+                userId
+                    ? and(eq(commentRead.commentId, comment.id), eq(commentRead.userId, userId))
+                    : sql`FALSE`
+            )
             .groupBy(comment.topicId);
 
-        return json({ topics, comments });
+        // Transform to the format expected by the frontend
+        const comments = commentStats.map(s => ({ topicId: s.topicId, count: s.commentCount }));
+        const unreadCounts = commentStats.map(s => ({ topicId: s.topicId, count: Number(s.unreadCount) }));
+
+        return json({ topics, comments, unreadCounts });
     } catch (error) {
         console.error('Error fetching topics:', error);
         return json({ error: 'Failed to fetch topics' }, { status: 500 });
@@ -37,7 +51,7 @@ export const GET: RequestHandler = async ({ }) => {
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-    if(!locals.user) {
+    if (!locals.user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -50,10 +64,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         // Insert new topic
         const newTopic = await db
             .insert(topic)
-            .values({ 
-                title, 
-                createdBy: locals.user.id, 
-                createdAt: Date.now() 
+            .values({
+                title,
+                createdBy: locals.user.id,
+                createdAt: Date.now()
             })
             .returning();
 
@@ -73,8 +87,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 createdAt: Date.now(),
             })
             .returning();
-        
-        if(global.io) {
+
+        if (global.io) {
             console.log('blah blah blah')
             global.io.emit('newTopic', { topic: { ...newTopic[0], createdBy: locals.user.displayName }, comment: newComment[0] });
         }
@@ -87,7 +101,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
-    if(!locals.user) {
+    if (!locals.user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -118,10 +132,10 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 
         await db.delete(topic).where(eq(topic.id, id));
 
-        if(global.io) {
+        if (global.io) {
             global.io.emit('deleteTopic', { id });
         }
-        
+
         return json({ message: 'Topic deleted successfully' });
     } catch (error) {
         console.error('Error deleting topic:', error);
