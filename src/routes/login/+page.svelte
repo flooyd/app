@@ -85,7 +85,7 @@
 <style>
 
 	.login-container {
-		padding: 8px;
+		padding: 20px;
 	}
 	
 	h1 {

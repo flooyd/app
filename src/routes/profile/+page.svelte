@@ -18,7 +18,7 @@
 </script>
 
 {#if ready}
-	<div transition:fly={{ x: -1000, duration: 150 }}>
+	<div class='profile-container' transition:fly={{ x: -1000, duration: 150 }}>
 		{#if $user}
 			<h1>Profile</h1>
 			<div class="profile">
@@ -35,10 +35,11 @@
 {/if}
 
 <style>
+	.profile-container {
+		padding: 20px;
+	}
 	h1 {
 		margin-bottom: 8px;
-		padding-top: 8px;
-		padding: 8px;
 	}
 	.profile {
 		display: flex;
