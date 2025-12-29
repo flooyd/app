@@ -16,15 +16,35 @@ export const handle: Handle = async ({ event, resolve }) => {
             console.log('Hooks.server.ts - Verified token:', userToken);
 
             if (userToken) {
-                const userData = await db
-                    .select()
-                    .from(user)
-                    .where(eq(user.id, userToken.id))
-                    .limit(1);
+                let userData = [];
+                let retries = 3;
+                while (retries > 0 && userData.length === 0) {
+                    try {
+                        userData = await db
+                            .select()
+                            .from(user)
+                            .where(eq(user.id, userToken.id))
+                            .limit(1);
 
-                if (userData.length > 0) {
-                    event.locals.user = userData[0];
-                    console.log('Hooks.server.ts - User set to locals:', userData[0].username);
+                        if (userData.length > 0) {
+                            event.locals.user = userData[0];
+                            console.log('Hooks.server.ts - User set to locals:', userData[0].username);
+                            break;
+                        } else {
+                            console.log(`Hooks.server.ts - User lookup returned empty. Retries left: ${retries}`);
+                        }
+                    } catch (err) {
+                        console.error(`Hooks.server.ts - DB Error (Retry ${4 - retries}):`, err);
+                    }
+
+                    retries--;
+                    if (retries > 0 && userData.length === 0) {
+                        await new Promise(r => setTimeout(r, 500)); // Wait 500ms before retry
+                    }
+                }
+
+                if (!event.locals.user) {
+                    console.error('Hooks.server.ts - Failed to load user after retries. Token was valid:', userToken.id);
                 }
             }
         } catch (error) {
