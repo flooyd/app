@@ -78,6 +78,7 @@
 		cursor: pointer;
 		border: 3px solid brown;
 		border-radius: 8px;
+		height: 39px;
 	}
 
 	:global(button:hover) {

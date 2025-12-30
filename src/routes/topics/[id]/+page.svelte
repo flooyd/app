@@ -4,11 +4,13 @@
 	import { fade } from 'svelte/transition';
 	import { topicComments, user } from '$lib/stores/index';
 	import { getSocket } from '$lib/stores/socket';
+	import SmilePlus from '@lucide/svelte/icons/smile-plus';
 
 	let props = $props();
 	let { id } = props.params;
 	let topicDetails = $state<any>(null);
 	let ready = $state<boolean>(false);
+	let commentHovered = $state<any>(null);
 
 	// Track comments pending to be marked as read (for debouncing)
 	let pendingReadIds = $state<Set<number>>(new Set());
@@ -163,8 +165,16 @@
 		<h1>{topicDetails?.title}</h1>
 		{#if $topicComments.length > 0}
 			<ul>
-				{#each $topicComments as comment}
-					<div class="comment" class:unread={!comment.isRead} data-comment-id={comment.id}>
+				{#each $topicComments as comment, index (comment.id)}
+					<div
+						role="dialog"
+						tabindex={index}
+						class="comment"
+						onmouseenter={() => (commentHovered = comment)}
+						onmouseleave={() => (commentHovered = null)}
+						class:unread={!comment.isRead}
+						data-comment-id={comment.id}
+					>
 						<p class="comment-content">{comment.content}</p>
 						<div class="comment-footer">
 							<div>
@@ -176,8 +186,13 @@
 								/>
 								at <span>{new Date(comment.createdAt).toLocaleString()}</span>
 							</div>
-							{#if $user?.username === comment.createdBy}
-								<button onclick={handleDeleteComment(comment.id)}>Delete</button>
+							{#if commentHovered?.id === comment.id}
+								<div>
+									<button><SmilePlus size={13.33} /></button>
+									{#if $user?.username === comment.createdBy}
+										<button onclick={handleDeleteComment(comment.id)}>Delete</button>
+									{/if}
+								</div>
 							{/if}
 						</div>
 					</div>
