@@ -58,7 +58,7 @@
 			</form>
 			<p>
 				Don't have an account?
-				<button type="button" onclick={() => (loginOrRegister = 'register')}>Register here.</button>
+				<button type="button" onclick={() => (loginOrRegister = 'register')}>Register</button>
 			</p>
 		{:else}
 			<h1>Register</h1>
@@ -76,7 +76,7 @@
 			</form>
 			<p>
 				Already have an account?
-				<button type="button" onclick={() => (loginOrRegister = 'login')}>Login here.</button>
+				<button type="button" onclick={() => (loginOrRegister = 'login')}>Login</button>
 			</p>
 		{/if}
 	</div>

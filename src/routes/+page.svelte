@@ -15,6 +15,8 @@
 	let showSettings = $state<boolean>(false);
 	let cellPadding = $state<number>(8);
 	let cellAlign = $state<string>('left');
+	let cardPadding = $state<number>(8);
+	let cardGap = $state<number>(8);
 	let sortColumn = $state<string>('');
 	let sortDirection = $state<string>('asc');
 	let cardView = $state<boolean>(false);
@@ -90,6 +92,9 @@
 	};
 
 	onMount(async () => {
+		// Load showSettings from localStorage
+		showSettings = localStorage.getItem('showSettings') === 'true';
+
 		const response = await fetch('/api/topics');
 		const data = await response.json();
 
@@ -123,6 +128,10 @@
 	$effect(() => {
 		console.log(`Sorting by ${sortColumn} ${sortDirection}`);
 	});
+
+	$effect(() => {
+		localStorage.setItem('showSettings', showSettings ? 'true' : 'false');
+	});
 </script>
 
 <svelte:head>
@@ -137,7 +146,7 @@
 				<div class="flex-section">
 					<h1>Topics</h1>
 					<button onclick={() => goto('/topics/create-topic')}>Create Topic</button>
-					<button onclick={() => (cardView = !cardView)}>
+					<button class='card-view-button' onclick={() => (cardView = !cardView)}>
 						{cardView ? 'Table View' : 'Card View'}
 					</button>
 				</div>
@@ -153,9 +162,24 @@
 			{/if}
 
 			{#if cardView}
-				<div class="card-view">
+			{#if showSettings}
+					<div class="settings" transition:fade>
+						<button type="button" onclick={() => (showAvatars = !showAvatars)}>
+							{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
+						</button>
+						<div class="flex-section">
+							Card Padding: {cardPadding}px
+							<input type="number" min="0" max="32" bind:value={cardPadding} />
+						</div>
+						<div class="flex-section">
+							Card Gap: {cardGap}px
+							<input type="number" min="0" max="64" bind:value={cardGap} />
+						</div>
+					</div>
+				{/if}
+				<div class="card-view" style="--card-gap: {cardGap}px;">
 					{#each $topics as topic}
-						<button class="topic-card" onclick={() => goto(`/topics/${topic.id}`)}>
+						<button class="topic-card" style="--card-padding: {cardPadding}px;" onclick={() => goto(`/topics/${topic.id}`)}>
 							<h2>{topic.title}</h2>
 							<div class="card-flex">
 								Created By:
@@ -334,9 +358,15 @@
 
 	.top-bar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 8px;
+		gap: 8px;
+	}
+
+	.top-bar button  {
+		min-width: fit-content;
 	}
 
 	.settings {
@@ -349,10 +379,14 @@
 		gap: 8px;
 	}
 
+	.card-view-button {
+		margin-right: 8px;
+	}
+
 	.card-view {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--card-gap, 8px);
 		margin-top: 8px;
 	}
 
@@ -360,8 +394,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		padding: 16px;
-		margin-bottom: 12px;
+		padding: var(--card-padding, 8px);
 		border: 1px solid brown;
 		background: black;
 		color: white;
