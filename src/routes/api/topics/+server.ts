@@ -127,7 +127,18 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        //delete comments first due to foreign key constraint
+        //delete commendRead entries associated with comments of the topic
+        const commentsToDelete = await db
+            .select()
+            .from(comment)
+            .where(eq(comment.topicId, id));
+
+        for (const comm of commentsToDelete) {
+            await db.delete(commentRead).where(eq(commentRead.commentId, comm.id));
+        }
+
+        //delete comments associated with the topic
+
         await db.delete(comment).where(eq(comment.topicId, id));
 
         await db.delete(topic).where(eq(topic.id, id));

@@ -58,7 +58,7 @@
 
 <style>
 	.create-topic-container {
-		padding: 8px;
+		padding: 20px;
 	}
 	
 	h1 {

@@ -142,7 +142,7 @@
 				</button>
 			</div>
 			{#if showSettings}
-				<div class="settings">
+				<div class="settings" transition:fade>
 					<button type="button" onclick={() => (showAvatars = !showAvatars)}>
 						{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
 					</button>
@@ -170,9 +170,9 @@
 										Title
 										{#if sortColumn === 'title'}
 											{#if sortDirection === 'asc'}
-												<MoveUp />
+												<MoveUp color="lightgreen" />
 											{:else}
-												<MoveDown />
+												<MoveDown color="lightgreen"/>
 											{/if}
 										{/if}
 									</span>
@@ -182,9 +182,9 @@
 										Created By
 										{#if sortColumn === 'createdby'}
 											{#if sortDirection === 'asc'}
-												<MoveUp />
+												<MoveUp color="lightgreen" />
 											{:else}
-												<MoveDown />
+												<MoveDown color="lightgreen"/>
 											{/if}
 										{/if}
 									</span>
@@ -194,9 +194,9 @@
 										Comments
 										{#if sortColumn === 'comments'}
 											{#if sortDirection === 'asc'}
-												<MoveUp />
+												<MoveUp color="lightgreen" />
 											{:else}
-												<MoveDown />
+												<MoveDown color="lightgreen"/>
 											{/if}
 										{/if}
 									</span>
@@ -206,9 +206,9 @@
 										Unread
 										{#if sortColumn === 'unread'}
 											{#if sortDirection === 'asc'}
-												<MoveUp />
+												<MoveUp color="lightgreen" />
 											{:else}
-												<MoveDown />
+												<MoveDown color="lightgreen"/>
 											{/if}
 										{/if}
 									</span>
@@ -218,9 +218,9 @@
 										Created At
 										{#if sortColumn === 'createdat'}
 											{#if sortDirection === 'asc'}
-												<MoveUp />
+												<MoveUp color="lightgreen" />
 											{:else}
-												<MoveDown />
+												<MoveDown color="lightgreen"/>
 											{/if}
 										{/if}
 									</span>

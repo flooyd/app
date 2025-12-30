@@ -5,6 +5,7 @@ export const user = writable<
         id: number;
         username: string;
         displayName: string;
+        avatar: string | null;
     } | null>(null);
 
 export const page = writable<string>('home');
