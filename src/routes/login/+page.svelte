@@ -2,7 +2,7 @@
 	import { user, page } from '$lib/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	let loginOrRegister = $state<'login' | 'register'>('login');
 	let username = $state('');
@@ -44,7 +44,7 @@
 </script>
 
 {#if ready}
-	<div class='login-container' transition:fly={{ x: -1000, duration: 150 }}>
+	<div class='login-container' transition:fade>
 		{#if loginOrRegister === 'login'}
 			<h1>Login</h1>
 			<form onsubmit={handleLogin}>

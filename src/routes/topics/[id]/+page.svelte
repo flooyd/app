@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CommentFooter from '$lib/components/CommentFooter.svelte';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	import { topicComments, user } from '$lib/stores/index';
 	import { getSocket } from '$lib/stores/socket';
 
@@ -159,7 +159,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class="comments-container" transition:fly={{ x: -1000, duration: 150 }}>
+	<div class="comments-container" transition:fade>
 		<h1>{topicDetails?.title}</h1>
 		{#if $topicComments.length > 0}
 			<ul>

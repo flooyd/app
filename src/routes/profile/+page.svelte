@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { user, page } from '$lib/stores';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	$page = 'profile';
     let ready = $state<boolean>(false);
@@ -18,7 +18,7 @@
 </script>
 
 {#if ready}
-	<div class='profile-container' transition:fly={{ x: -1000, duration: 150 }}>
+	<div class='profile-container' transition:fade>
 		{#if $user}
 			<h1>Profile</h1>
 			<div class="profile">

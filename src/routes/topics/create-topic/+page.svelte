@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page, user } from '$lib/stores';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	$page = 'create-topic';
 
 	let title = $state<string>('');
@@ -40,7 +40,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class='create-topic-container' transition:fly={{ x: -1000, duration: 150 }}>
+	<div class='create-topic-container' transition:fade>
 		{#if $user}
 			<h1>Create a New Topic</h1>
 			<form onsubmit={(event) => handleSubmit(event)}>

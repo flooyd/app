@@ -9,7 +9,7 @@ export const user = writable<
 
 export const page = writable<string>('home');
 
-export const topics = writable<Array<{
+export interface Topic {
     commentCount: any;
     unreadCount: number;
     id: number;
@@ -17,7 +17,9 @@ export const topics = writable<Array<{
     createdBy: string;
     createdAt: Date;
     avatar: string | null;
-}>>([]);
+}
+
+export const topics = writable<Array<Topic>>([]);
 
 export const topicComments = writable<Array<{
     id: number;

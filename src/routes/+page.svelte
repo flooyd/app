@@ -2,8 +2,11 @@
 	import { goto } from '$app/navigation';
 	import { user, page, topics } from '$lib/stores';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	import { getSocket } from '$lib/stores/socket';
+	import MoveUp from '@lucide/svelte/icons/move-up';
+	import MoveDown from '@lucide/svelte/icons/move-down';
+	import type { Topic } from '$lib/stores';
 
 	$page = 'home';
 
@@ -12,6 +15,63 @@
 	let showSettings = $state<boolean>(false);
 	let cellPadding = $state<number>(8);
 	let cellAlign = $state<string>('left');
+	let sortColumn = $state<string>('');
+	let sortDirection = $state<string>('asc');
+
+	const handleColumnSort = (columnName: string) => {
+		const column = columnName.replace(' ', '').toLowerCase();
+		if (sortColumn === column) {
+			if (sortDirection === 'asc') {
+				sortDirection = 'desc';
+			} else {
+				sortColumn = '';
+				sortDirection = 'desc';
+			}
+		} else {
+			sortColumn = column;
+			sortDirection = 'asc';
+		}
+
+		sortTopics();
+	};
+
+	const sortTopics = () => {
+		$topics.sort((a: Topic, b: Topic) => {
+			let aValue: any;
+			let bValue: any;
+
+			switch (sortColumn) {
+				case 'title':
+					aValue = a.title.toLowerCase();
+					bValue = b.title.toLowerCase();
+					break;
+				case 'createdby':
+					aValue = a.createdBy.toLowerCase();
+					bValue = b.createdBy.toLowerCase();
+					break;
+				case 'comments':
+					aValue = a.commentCount || 0;
+					bValue = b.commentCount || 0;
+					break;
+				case 'unread':
+					aValue = a.unreadCount || 0;
+					bValue = b.unreadCount || 0;
+					break;
+				case 'createdat':
+					aValue = new Date(a.createdAt).getTime();
+					bValue = new Date(b.createdAt).getTime();
+					break;
+				default:
+					aValue = new Date(a.createdAt).getTime();
+					bValue = new Date(b.createdAt).getTime();
+			}
+
+			if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+			if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+			return 0;
+		});
+		$topics = $topics;
+	};
 
 	const handleDelete = async (id: number) => {
 		const response = await fetch(`/api/topics`, {
@@ -22,7 +82,7 @@
 			body: JSON.stringify({ id })
 		});
 		if (response.ok) {
-			$topics = $topics.filter((topic) => topic.id !== id);
+			$topics = $topics.filter((topic: Topic) => topic.id !== id);
 		} else {
 			alert('Failed to delete topic');
 		}
@@ -33,7 +93,7 @@
 		const data = await response.json();
 
 		$topics = data.topics;
-		$topics.forEach((topic) => {
+		$topics.forEach((topic: Topic) => {
 			topic.commentCount = data.comments.find((c: any) => c.topicId === topic.id)?.count || 0;
 			topic.unreadCount = data.unreadCounts?.find((u: any) => u.topicId === topic.id)?.count || 0;
 		});
@@ -48,7 +108,7 @@
 				console.log('newTopic received:', data);
 				if (data.createdBy === $user?.displayName) return;
 				console.log('Adding new topic to list:', data);
-				$topics = [data.topic, ...$topics];
+				$topics = [data.topic, ...$topics] as Topic[];
 				console.log($topics);
 			});
 
@@ -58,6 +118,10 @@
 			});
 		}
 	});
+
+	$effect(() => {
+		console.log(`Sorting by ${sortColumn} ${sortDirection}`);
+	});
 </script>
 
 <svelte:head>
@@ -66,7 +130,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class="topics-container" transition:fly={{ x: -1000, duration: 150 }}>
+	<div class="topics-container" transition:fade>
 		{#if $user}
 			<div class="top-bar">
 				<div class="flex-section">
@@ -101,11 +165,66 @@
 					<table>
 						<thead>
 							<tr>
-								<th>Title</th>
-								<th>Created By</th>
-								<th>Comments</th>
-								<th>Unread</th>
-								<th>Created At</th>
+								<th onclick={() => handleColumnSort('Title')}>
+									<span>
+										Title
+										{#if sortColumn === 'title'}
+											{#if sortDirection === 'asc'}
+												<MoveUp />
+											{:else}
+												<MoveDown />
+											{/if}
+										{/if}
+									</span>
+								</th>
+								<th onclick={() => handleColumnSort('Created By')}>
+									<span>
+										Created By
+										{#if sortColumn === 'createdby'}
+											{#if sortDirection === 'asc'}
+												<MoveUp />
+											{:else}
+												<MoveDown />
+											{/if}
+										{/if}
+									</span>
+								</th>
+								<th onclick={() => handleColumnSort('Comments')}>
+									<span>
+										Comments
+										{#if sortColumn === 'comments'}
+											{#if sortDirection === 'asc'}
+												<MoveUp />
+											{:else}
+												<MoveDown />
+											{/if}
+										{/if}
+									</span>
+								</th>
+								<th onclick={() => handleColumnSort('Unread')}>
+									<span>
+										Unread
+										{#if sortColumn === 'unread'}
+											{#if sortDirection === 'asc'}
+												<MoveUp />
+											{:else}
+												<MoveDown />
+											{/if}
+										{/if}
+									</span>
+								</th>
+								<th onclick={() => handleColumnSort('Created At')}>
+									<span>
+										Created At
+										{#if sortColumn === 'createdat'}
+											{#if sortDirection === 'asc'}
+												<MoveUp />
+											{:else}
+												<MoveDown />
+											{/if}
+										{/if}
+									</span>
+								</th>
 								<th>Actions</th>
 							</tr>
 						</thead>
@@ -193,6 +312,16 @@
 		width: 100%;
 		min-width: 800px; /* Adjust based on your needs */
 		border-collapse: collapse;
+	}
+
+	th {
+		height: 44px;
+	}
+
+	th span {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 	}
 
 	th,

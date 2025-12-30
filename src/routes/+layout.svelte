@@ -2,7 +2,7 @@
 	import { user, page } from '$lib/stores';
 	import { getSocket, initSocket, disconnectSocket } from '$lib/stores/socket';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	let { children, data } = $props();
 	let ready = $state<boolean>(false);
@@ -28,7 +28,7 @@
 </script>
 
 {#if ready}
-	<nav transition:fly={{ x: -1000, duration: 150 }}>
+	<nav transition:fade>
 		<a href="/"><h2>App</h2></a>
 		{#if $user}
 			<a href="/profile" style={$page === 'profile' ? 'color: lightgreen;' : ''}
