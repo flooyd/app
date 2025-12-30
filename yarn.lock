@@ -1319,6 +1319,11 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
+emojibase@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/emojibase/-/emojibase-6.1.0.tgz#c3bc281e998a0e06398416090c23bac8c5ed3ee8"
+  integrity sha512-1GkKJPXP6tVkYJHOBSJHoGOr/6uaDxZ9xJ6H7m6PfdGXTmQgbALHLWaVRY4Gi/qf5x/gT/NUXLPuSHYLqtLtrQ==
+
 encodeurl@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-2.0.0.tgz#7b8ea898077d7e409d3ac45474ea38eaf0857a58"
@@ -2253,6 +2258,13 @@ pathe@^2.0.3:
   version "2.0.3"
   resolved "https://registry.npmjs.org/pathe/-/pathe-2.0.3.tgz"
   integrity sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==
+
+picmo@^5.8.5:
+  version "5.8.5"
+  resolved "https://registry.yarnpkg.com/picmo/-/picmo-5.8.5.tgz#0719390979d638817d05d000a3b086cc93b71ebf"
+  integrity sha512-7I8jfuHALF9lkt3d+XCZGP+IwH7g91vYZv6XtRnJ99IDjnm92zel0L5DEo2FX0oaHUwRMBD/kn2knTZqwItudQ==
+  dependencies:
+    emojibase "^6.1.0"
 
 picocolors@^1.0.0, picocolors@^1.1.1:
   version "1.1.1"

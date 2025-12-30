@@ -5,12 +5,15 @@
 	import { topicComments, user } from '$lib/stores/index';
 	import { getSocket } from '$lib/stores/socket';
 	import SmilePlus from '@lucide/svelte/icons/smile-plus';
+	import { createPicker } from 'picmo';
 
 	let props = $props();
 	let { id } = props.params;
 	let topicDetails = $state<any>(null);
 	let ready = $state<boolean>(false);
 	let commentHovered = $state<any>(null);
+	let reactDrawerOpen = $state<boolean>(false);
+	let editDrawerOpen = $state<boolean>(false);
 
 	// Track comments pending to be marked as read (for debouncing)
 	let pendingReadIds = $state<Set<number>>(new Set());
@@ -18,6 +21,7 @@
 
 	// Intersection Observer instance (module scope so we can observe new comments)
 	let observer: IntersectionObserver | null = null;
+	let picker: any = null;
 
 	const fetchTopicDetails = async () => {
 		const response = await fetch(`/api/topics/${id}`);
@@ -153,6 +157,29 @@
 			topicDetails = null;
 		};
 	});
+
+	$effect(() => {
+		if (reactDrawerOpen && !picker) {
+			// Initialize picker when drawer opens for the first time
+			const rootElement = document.querySelector('.react-drawer') as HTMLElement | null;
+			if (rootElement) {
+				picker = createPicker({
+					rootElement
+				});
+
+				picker.addEventListener('emoji:select', (selection: any) => {
+					console.log('Emoji selected:', selection);
+					// Handle emoji selection (e.g., send reaction to server)
+				});
+			}
+		}
+		if(!reactDrawerOpen && picker) {
+			// Destroy picker when drawer closes
+			picker.destroy();
+			console.log('destroyed picker');
+			picker = null;
+		}
+	});
 </script>
 
 <svelte:head>
@@ -171,7 +198,11 @@
 						tabindex={index}
 						class="comment"
 						onmouseenter={() => (commentHovered = comment)}
-						onmouseleave={() => (commentHovered = null)}
+						onmouseleave={() => {
+							commentHovered = null;
+							reactDrawerOpen = false;
+							editDrawerOpen = false;
+						}}
 						class:unread={!comment.isRead}
 						data-comment-id={comment.id}
 					>
@@ -187,10 +218,24 @@
 								at <span>{new Date(comment.createdAt).toLocaleString()}</span>
 							</div>
 							{#if commentHovered?.id === comment.id}
-								<div>
-									<button><SmilePlus size={13.33} /></button>
+								<div class="options-container">
+									<button class="react-button" onclick={() => (reactDrawerOpen = !reactDrawerOpen)}
+										><SmilePlus size={13.33} /></button
+									>
 									{#if $user?.username === comment.createdBy}
-										<button onclick={handleDeleteComment(comment.id)}>Delete</button>
+										<button onclick={() => (editDrawerOpen = !editDrawerOpen)}>Edit</button>
+									{/if}
+
+									{#if reactDrawerOpen}
+										<div class="react-drawer">
+											
+										</div>
+									{/if}
+
+									{#if editDrawerOpen}
+										<div class="edit-drawer">
+
+										</div>
 									{/if}
 								</div>
 							{/if}
@@ -224,6 +269,7 @@
 		padding: 8px;
 		margin-bottom: 8px;
 		transition: border-left 0.2s ease;
+		position: relative;
 	}
 
 	.comment.unread {
@@ -259,5 +305,23 @@
 		border-radius: 50%;
 		vertical-align: middle;
 		margin-right: 8px;
+	}
+
+	.react-button {
+		margin-right: 12px;
+	}
+
+	.react-drawer,
+	.edit-drawer {
+		position: absolute;
+		top: 100%;
+		right: 0;
+		background: white;
+		border: 1px solid brown;
+		padding: 8px;
+		z-index: 10;
+		color: black;
+		min-height: 300px;
+		min-width: 300px;
 	}
 </style>
