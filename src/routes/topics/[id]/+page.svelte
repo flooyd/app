@@ -259,6 +259,7 @@
 		height: calc(100vh - 102px);
 		overflow-y: auto;
 		padding: 20px;
+		position: relative;
 	}
 
 	.comment {
@@ -269,7 +270,6 @@
 		padding: 8px;
 		margin-bottom: 8px;
 		transition: border-left 0.2s ease;
-		position: relative;
 	}
 
 	.comment.unread {
@@ -314,7 +314,7 @@
 	.react-drawer,
 	.edit-drawer {
 		position: absolute;
-		top: 100%;
+		top: 0px;
 		right: 0;
 		background: white;
 		border: 1px solid brown;

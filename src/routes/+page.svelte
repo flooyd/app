@@ -17,6 +17,7 @@
 	let cellAlign = $state<string>('left');
 	let sortColumn = $state<string>('');
 	let sortDirection = $state<string>('asc');
+	let cardView = $state<boolean>(false);
 
 	const handleColumnSort = (columnName: string) => {
 		const column = columnName.replace(' ', '').toLowerCase();
@@ -136,139 +137,184 @@
 				<div class="flex-section">
 					<h1>Topics</h1>
 					<button onclick={() => goto('/topics/create-topic')}>Create Topic</button>
+					<button onclick={() => (cardView = !cardView)}>
+						{cardView ? 'Table View' : 'Card View'}
+					</button>
 				</div>
 				<button onclick={() => (showSettings = !showSettings)}>
 					{showSettings ? 'Hide Settings' : 'Show Settings'}
 				</button>
 			</div>
-			{#if showSettings}
-				<div class="settings" transition:fade>
-					<button type="button" onclick={() => (showAvatars = !showAvatars)}>
-						{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
-					</button>
-					<div class="flex-section">
-						Cell Padding: {cellPadding}px
-						<input type="number" min="0" max="32" bind:value={cellPadding} />
-					</div>
-					<div class="flex-section">
-						Cell Align: {cellAlign}
-						<input type="text" bind:value={cellAlign} />
-					</div>
-				</div>
-			{/if}
 
-			{#if $topics.length > 0}
-				<div
-					class="table-container"
-					style="--cell-padding: {cellPadding}px; --cell-align: {cellAlign}"
-				>
-					<table>
-						<thead>
-							<tr>
-								<th onclick={() => handleColumnSort('Title')}>
-									<span>
-										Title
-										{#if sortColumn === 'title'}
-											{#if sortDirection === 'asc'}
-												<MoveUp color="lightgreen" />
-											{:else}
-												<MoveDown color="lightgreen"/>
-											{/if}
-										{/if}
-									</span>
-								</th>
-								<th onclick={() => handleColumnSort('Created By')}>
-									<span>
-										Created By
-										{#if sortColumn === 'createdby'}
-											{#if sortDirection === 'asc'}
-												<MoveUp color="lightgreen" />
-											{:else}
-												<MoveDown color="lightgreen"/>
-											{/if}
-										{/if}
-									</span>
-								</th>
-								<th onclick={() => handleColumnSort('Comments')}>
-									<span>
-										Comments
-										{#if sortColumn === 'comments'}
-											{#if sortDirection === 'asc'}
-												<MoveUp color="lightgreen" />
-											{:else}
-												<MoveDown color="lightgreen"/>
-											{/if}
-										{/if}
-									</span>
-								</th>
-								<th onclick={() => handleColumnSort('Unread')}>
-									<span>
-										Unread
-										{#if sortColumn === 'unread'}
-											{#if sortDirection === 'asc'}
-												<MoveUp color="lightgreen" />
-											{:else}
-												<MoveDown color="lightgreen"/>
-											{/if}
-										{/if}
-									</span>
-								</th>
-								<th onclick={() => handleColumnSort('Created At')}>
-									<span>
-										Created At
-										{#if sortColumn === 'createdat'}
-											{#if sortDirection === 'asc'}
-												<MoveUp color="lightgreen" />
-											{:else}
-												<MoveDown color="lightgreen"/>
-											{/if}
-										{/if}
-									</span>
-								</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each $topics as topic}
-								<tr class="topic" onclick={() => goto(`/topics/${topic.id}`)}>
-									<td>{topic.title}</td>
-									<td>
-										<div class="td-flex">
-											{#if showAvatars}
-												<img
-													src={topic.avatar ||
-														'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMVruv2fzEJ-7rpjvgRqLsLBb98euBrF7_-g&s'}
-													alt="avatar"
-													width="40"
-													height="40"
-												/>
-											{/if}
-											{topic.createdBy}
-										</div>
-									</td>
-									<td>{topic.commentCount}</td>
-									<td class:has-unread={topic.unreadCount > 0}>
-										{#if topic.unreadCount > 0}
-											<span class="unread-badge">{topic.unreadCount}</span>
-										{:else}
-											0
-										{/if}
-									</td>
-									<td>{new Date(topic.createdAt).toLocaleString()}</td>
-									<td onclick={(e) => e.stopPropagation()}>
-										{#if $user.username === topic.createdBy}
-											<button onclick={() => handleDelete(topic.id)}> Delete </button>
-										{/if}
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			{:else}
+			{#if $topics.length === 0}
 				<p>
 					No topics yet. <button onclick={() => goto('/topics/create-topic')}>Create one</button>
 				</p>
+			{/if}
+
+			{#if cardView}
+				<div class="card-view">
+					{#each $topics as topic}
+						<button class="topic-card" onclick={() => goto(`/topics/${topic.id}`)}>
+							<h2>{topic.title}</h2>
+							<div class="card-flex">
+								Created By:
+								{#if showAvatars}
+									<img
+										src={topic.avatar ||
+											'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMVruv2fzEJ-7rpjvgRqLsLBb98euBrF7_-g&s'}
+										alt="avatar"
+										width="40"
+										height="40"
+									/>
+								{/if}
+								{topic.createdBy}
+							</div>
+							<p>Comments: {topic.commentCount || 0}</p>
+							<p>
+								Unread:{' '}
+								{#if topic.unreadCount > 0}
+									<span class="unread-badge">{topic.unreadCount}</span>
+								{:else}
+									0
+								{/if}
+							</p>
+							<p>Created at: {new Date(topic.createdAt).toLocaleString()}</p>
+						</button>
+					{/each}
+				</div>
+			{/if}
+
+			{#if !cardView}
+				{#if showSettings}
+					<div class="settings" transition:fade>
+						<button type="button" onclick={() => (showAvatars = !showAvatars)}>
+							{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
+						</button>
+						<div class="flex-section">
+							Cell Padding: {cellPadding}px
+							<input type="number" min="0" max="32" bind:value={cellPadding} />
+						</div>
+						<div class="flex-section">
+							Cell Align: {cellAlign}
+							<input type="text" bind:value={cellAlign} />
+						</div>
+					</div>
+				{/if}
+
+				{#if $topics.length > 0}
+					<div
+						class="table-container"
+						style="--cell-padding: {cellPadding}px; --cell-align: {cellAlign}"
+					>
+						<table>
+							<thead>
+								<tr>
+									<th onclick={() => handleColumnSort('Title')}>
+										<span class='td-flex'>
+											Title
+											{#if sortColumn === 'title'}
+												{#if sortDirection === 'asc'}
+													<MoveUp color="lightgreen" />
+												{:else}
+													<MoveDown color="lightgreen" />
+												{/if}
+											{/if}
+										</span>
+									</th>
+									<th onclick={() => handleColumnSort('Created By')}>
+										<span class='td-flex'>
+											Created By
+											{#if sortColumn === 'createdby'}
+												{#if sortDirection === 'asc'}
+													<MoveUp color="lightgreen" />
+												{:else}
+													<MoveDown color="lightgreen" />
+												{/if}
+											{/if}
+										</span>
+									</th>
+									<th onclick={() => handleColumnSort('Comments')}>
+										<span class='td-flex'>
+											Comments
+											{#if sortColumn === 'comments'}
+												{#if sortDirection === 'asc'}
+													<MoveUp color="lightgreen" />
+												{:else}
+													<MoveDown color="lightgreen" />
+												{/if}
+											{/if}
+										</span>
+									</th>
+									<th onclick={() => handleColumnSort('Unread')}>
+										<span class='td-flex'>
+											Unread
+											{#if sortColumn === 'unread'}
+												{#if sortDirection === 'asc'}
+													<MoveUp color="lightgreen" />
+												{:else}
+													<MoveDown color="lightgreen" />
+												{/if}
+											{/if}
+										</span>
+									</th>
+									<th onclick={() => handleColumnSort('Created At')}>
+										<span class='td-flex'>
+											Created At
+											{#if sortColumn === 'createdat'}
+												{#if sortDirection === 'asc'}
+													<MoveUp color="lightgreen" />
+												{:else}
+													<MoveDown color="lightgreen" />
+												{/if}
+											{/if}
+										</span>
+									</th>
+									<th class='td-flex'>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each $topics as topic}
+									<tr class="topic" onclick={() => goto(`/topics/${topic.id}`)}>
+										<td>{topic.title}</td>
+										<td>
+											<div class="td-flex">
+												{#if showAvatars}
+													<img
+														src={topic.avatar ||
+															'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMVruv2fzEJ-7rpjvgRqLsLBb98euBrF7_-g&s'}
+														alt="avatar"
+														width="40"
+														height="40"
+													/>
+												{/if}
+												{topic.createdBy}
+											</div>
+										</td>
+										<td>{topic.commentCount}</td>
+										<td class:has-unread={topic.unreadCount > 0}>
+											{#if topic.unreadCount > 0}
+												<span class="unread-badge">{topic.unreadCount}</span>
+											{:else}
+												0
+											{/if}
+										</td>
+										<td>{new Date(topic.createdAt).toLocaleString()}</td>
+										<td onclick={(e) => e.stopPropagation()}>
+											{#if $user.username === topic.createdBy}
+												<button onclick={() => handleDelete(topic.id)}> Delete </button>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{:else}
+					<p>
+						No topics yet. <button onclick={() => goto('/topics/create-topic')}>Create one</button>
+					</p>
+				{/if}
 			{/if}
 		{:else}
 			<h1>Welcome to the App!</h1>
@@ -298,7 +344,35 @@
 		padding: 8px;
 		border: 1px solid brown;
 		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
 		gap: 8px;
+	}
+
+	.card-view {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 8px;
+	}
+
+	.topic-card {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 16px;
+		margin-bottom: 12px;
+		border: 1px solid brown;
+		background: black;
+		color: white;
+		text-align: left;
+		cursor: pointer;
+		width: 100%;
+		max-width: 400px;
+	}
+
+	.topic-card:hover {
+		background: brown;
 	}
 
 	.table-container {
@@ -351,6 +425,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: var(--cell-align, left);
+		gap: 8px;
+		white-space: nowrap;
+		user-select: none;
+	}
+
+	.card-flex {
+		display: flex;
+		align-items: center;
 		gap: 8px;
 		white-space: nowrap;
 	}
