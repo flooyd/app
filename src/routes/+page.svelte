@@ -245,6 +245,8 @@
 <svelte:head>
 	<title>App</title>
 	<meta name="description" content="App" />
+	<meta property="og:title" content="App" />
+	<meta property="og:description" content="App" />
 </svelte:head>
 
 {#if ready}
