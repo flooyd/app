@@ -17,6 +17,18 @@ export const topic = pgTable('topic',
         createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     });
 
+export const favorite = pgTable('favorite',
+    {
+        id: serial('id').primaryKey(),
+        userId: integer('user_id').notNull().references(() => user.id),
+        topicId: integer('topic_id').notNull().references(() => topic.id),
+        favoritedAt: bigint('favorited_at', { mode: 'number' }).notNull(),
+    },
+    (table) => ({
+        uniqueUserTopic: unique().on(table.userId, table.topicId),
+    })
+);
+
 export const comment = pgTable('comment',
     {
         id: serial('id').primaryKey(),

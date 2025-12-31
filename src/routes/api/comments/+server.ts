@@ -26,7 +26,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             })
             .returning();
 
-        global.io?.emit('newComment', { comment: { ...newComments[0], createdBy: locals.user.displayName, avatar: locals.user.avatar } });
+        const emittedComment = { ...newComments[0], createdBy: locals.user.displayName, avatar: locals.user.avatar };
+        global.io?.emit('newComment', { comment: emittedComment });
+
+        // Notify topic activity so other clients can reorder topics by last activity
+        global.io?.emit('topicActivity', { topicId: newComments[0].topicId, lastActivity: newComments[0].createdAt });
 
         return json({ comment: newComments[0] });
     } catch (error) {
@@ -71,7 +75,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
             .delete(comment)
             .where(eq(comment.id, commentId));
 
-        global.io?.emit('deleteComment', { commentId });
+        global.io?.emit('deleteComment', { commentId, topicId: existingComment[0].topicId });
         return json({ success: true });
     } catch (error) {
         console.error('Error deleting comment:', error);

@@ -11,7 +11,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
             return json({ error: 'Invalid topic ID' }, { status: 400 });
         }
 
-        //get tpoic and comments
         const topics = await db
             .select()
             .from(topic)
@@ -33,8 +32,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         if (topics.length === 0) {
             return json({ error: 'Topic not found' }, { status: 404 });
         }
-
-        // Get read comment IDs for the current user
+        
         let readCommentIds: number[] = [];
         if (locals.user) {
             const commentIds = comments.map(c => c.id);

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { user, page, topics } from '$lib/stores';
+	import { user, page, topics, favorites } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { getSocket } from '$lib/stores/socket';
@@ -39,6 +39,17 @@
 	};
 
 	const sortTopics = () => {
+		// If no explicit sort column is chosen, default to newest topics first
+		if (!sortColumn) {
+			$topics.sort((a: Topic, b: Topic) => {
+				const aTime = (a as any).lastCommentAt ?? (typeof a.createdAt === 'number' ? a.createdAt : Date.parse(a.createdAt as any));
+				const bTime = (b as any).lastCommentAt ?? (typeof b.createdAt === 'number' ? b.createdAt : Date.parse(b.createdAt as any));
+				return bTime - aTime;
+			});
+			$topics = $topics;
+			return;
+		}
+
 		$topics.sort((a: Topic, b: Topic) => {
 			let aValue: any;
 			let bValue: any;
@@ -91,17 +102,68 @@
 		}
 	};
 
-	onMount(async () => {
-		// Load showSettings from localStorage
-		showSettings = localStorage.getItem('showSettings') === 'true';
+	const handleFavorite = (id: number) => async () => {
+		const response = await fetch(`/api/topics/favorites`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ topicId: id })
+		});
+		if (response.ok) {
+			const data = await response.json();
+			$favorites = [...$favorites, data.favorite];
+			console.log('favorites after adding', $favorites);
+		} else {
+			alert('Failed to favorite topic');
+		}
+	};
 
+	const handleUnFavorite = (id: number) => async () => {
+		const response = await fetch(`/api/topics/favorites`, {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ topicId: id })
+		});
+		if (response.ok) {
+			const data = await response.json();
+			$favorites = $favorites.filter((fav) => fav.topicId !== id);
+			console.log('favorites after removing', $favorites);
+		} else {
+			alert('Failed to unfavorite topic');
+		}
+	};
+
+	onMount(async () => {
+		showSettings = localStorage.getItem('showSettings') === 'true';
+		
 		const response = await fetch('/api/topics');
 		const data = await response.json();
+		
+		const favoritesResponse = await fetch('/api/topics/favorites');
+		const favData = await favoritesResponse.json();
+		$favorites = favData.favorites || [];
+
+		console.log('favorites', $favorites);
 
 		$topics = data.topics;
 		$topics.forEach((topic: Topic) => {
-			topic.commentCount = data.comments.find((c: any) => c.topicId === topic.id)?.count || 0;
+			// commentCount: server may return comment stats (with .count) or a list of comments
+			const commentEntries = (data.comments || []).filter((c: any) => c.topicId === topic.id);
+
+			if (commentEntries.length && commentEntries[0].count !== undefined) {
+				topic.commentCount = commentEntries[0].count || 0;
+			} else {
+				// fallback: treat commentEntries as array of comment objects
+				topic.commentCount = commentEntries.length || 0;
+			}
+
 			topic.unreadCount = data.unreadCounts?.find((u: any) => u.topicId === topic.id)?.count || 0;
+
+			// Prefer server-provided lastActivity (epoch ms) if available, otherwise fall back to topic.createdAt
+			(topic as any).lastCommentAt = (topic as any).lastActivity ?? (typeof topic.createdAt === 'number' ? topic.createdAt : Date.parse(topic.createdAt as any));
 		});
 		$topics = $topics;
 		console.log($topics);
@@ -114,8 +176,54 @@
 				console.log('newTopic received:', data);
 				if (data.createdBy === $user?.displayName) return;
 				console.log('Adding new topic to list:', data);
-				$topics = [data.topic, ...$topics] as Topic[];
+				const newTopic = data.topic as Topic;
+				// if a comment was included, use its createdAt as lastCommentAt
+				if (data.comment && (data.comment.createdAt || data.comment.created_at)) {
+					(newTopic as any).lastCommentAt = data.comment.createdAt ?? data.comment.created_at;
+				}
+				$topics = [newTopic, ...$topics] as Topic[];
 				console.log($topics);
+			});
+
+			// Update topic counts/unread when a new comment is created elsewhere
+			socket.on('newComment', (data) => {
+				const c = data.comment;
+				if (!c || typeof c.topicId === 'undefined') return;
+				const idx = $topics.findIndex((t: Topic) => t.id === c.topicId);
+				if (idx === -1) return;
+				$topics[idx].commentCount = ($topics[idx].commentCount || 0) + 1;
+				if (c.createdBy !== $user?.displayName) {
+					$topics[idx].unreadCount = ($topics[idx].unreadCount || 0) + 1;
+				}
+				// update lastCommentAt from emitted comment
+				($topics[idx] as any).lastCommentAt = c.createdAt ?? (typeof c.created_at === 'number' ? c.created_at : (c.createdAt ? Date.parse(c.createdAt) : Date.now()));
+				$topics = $topics;
+			});
+
+			// Update topic counts when a comment is deleted elsewhere
+			socket.on('deleteComment', (data) => {
+				const { commentId, topicId } = data as { commentId?: number; topicId?: number };
+				if (!topicId) return;
+				const idx = $topics.findIndex((t: Topic) => t.id === topicId);
+				if (idx === -1) return;
+				$topics[idx].commentCount = Math.max(0, ($topics[idx].commentCount || 0) - 1);
+				$topics[idx].unreadCount = Math.max(0, ($topics[idx].unreadCount || 0) - 1);
+				$topics = $topics;
+			});
+
+			// Update topic ordering/activity when comments are created elsewhere
+			socket.on('topicActivity', (data) => {
+				const { topicId, lastActivity } = data as { topicId: number; lastActivity: number };
+				const idx = $topics.findIndex((t: Topic) => t.id === topicId);
+				if (idx !== -1) {
+					($topics[idx] as any).lastCommentAt = lastActivity;
+					// Only reorder if user hasn't chosen an explicit sort column
+					if (!sortColumn) {
+						// move the updated topic to the top
+						const [updated] = $topics.splice(idx, 1);
+						$topics = [updated, ...$topics];
+					}
+				}
 			});
 
 			socket.on('deleteTopic', (data) => {
@@ -146,7 +254,7 @@
 				<div class="flex-section">
 					<h1>Topics</h1>
 					<button onclick={() => goto('/topics/create-topic')}>Create Topic</button>
-					<button class='card-view-button' onclick={() => (cardView = !cardView)}>
+					<button class="card-view-button" onclick={() => (cardView = !cardView)}>
 						{cardView ? 'Table View' : 'Card View'}
 					</button>
 				</div>
@@ -162,7 +270,7 @@
 			{/if}
 
 			{#if cardView}
-			{#if showSettings}
+				{#if showSettings}
 					<div class="settings" transition:fade>
 						<button type="button" onclick={() => (showAvatars = !showAvatars)}>
 							{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
@@ -179,7 +287,11 @@
 				{/if}
 				<div class="card-view" style="--card-gap: {cardGap}px;">
 					{#each $topics as topic}
-						<button class="topic-card" style="--card-padding: {cardPadding}px;" onclick={() => goto(`/topics/${topic.id}`)}>
+						<button
+							class="topic-card"
+							style="--card-padding: {cardPadding}px;"
+							onclick={() => goto(`/topics/${topic.id}`)}
+						>
 							<h2>{topic.title}</h2>
 							<div class="card-flex">
 								Created By:
@@ -235,7 +347,7 @@
 							<thead>
 								<tr>
 									<th onclick={() => handleColumnSort('Title')}>
-										<span class='td-flex'>
+										<span class="td-flex">
 											Title
 											{#if sortColumn === 'title'}
 												{#if sortDirection === 'asc'}
@@ -247,7 +359,7 @@
 										</span>
 									</th>
 									<th onclick={() => handleColumnSort('Created By')}>
-										<span class='td-flex'>
+										<span class="td-flex">
 											Created By
 											{#if sortColumn === 'createdby'}
 												{#if sortDirection === 'asc'}
@@ -259,7 +371,7 @@
 										</span>
 									</th>
 									<th onclick={() => handleColumnSort('Comments')}>
-										<span class='td-flex'>
+										<span class="td-flex">
 											Comments
 											{#if sortColumn === 'comments'}
 												{#if sortDirection === 'asc'}
@@ -271,7 +383,7 @@
 										</span>
 									</th>
 									<th onclick={() => handleColumnSort('Unread')}>
-										<span class='td-flex'>
+										<span class="td-flex">
 											Unread
 											{#if sortColumn === 'unread'}
 												{#if sortDirection === 'asc'}
@@ -283,7 +395,7 @@
 										</span>
 									</th>
 									<th onclick={() => handleColumnSort('Created At')}>
-										<span class='td-flex'>
+										<span class="td-flex">
 											Created At
 											{#if sortColumn === 'createdat'}
 												{#if sortDirection === 'asc'}
@@ -294,7 +406,7 @@
 											{/if}
 										</span>
 									</th>
-									<th class='td-flex'>Actions</th>
+									<th class="td-flex">Actions</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -328,6 +440,11 @@
 											{#if $user.username === topic.createdBy}
 												<button onclick={() => handleDelete(topic.id)}> Delete </button>
 											{/if}
+											<button onclick={() => {
+												$favorites.some((t) => t.topicId === topic.id)
+													? handleUnFavorite(topic.id)()
+													: handleFavorite(topic.id)();
+											}}>{$favorites.some((t) => t.topicId === topic.id) ? 'Unfavorite' : 'Favorite'}</button>
 										</td>
 									</tr>
 								{/each}
@@ -365,7 +482,7 @@
 		gap: 8px;
 	}
 
-	.top-bar button  {
+	.top-bar button {
 		min-width: fit-content;
 	}
 
@@ -441,6 +558,7 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		user-select: none;
 	}
 
 	th:last-child,

@@ -84,6 +84,7 @@
 	:global(button:hover) {
 		background: brown;
 		color: white;
+		border: 3px solid lightgreen;
 	}
 
 	:global(label) {
@@ -99,6 +100,7 @@
 	:global(input, textarea) {
 		padding: 8px;
 		border: 1px solid brown;
+		display: block;
 	}
 
 	nav {

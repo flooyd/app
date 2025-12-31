@@ -1,11 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { topic, user, comment, commentRead } from '$lib/server/db/schema';
+import { topic, user, comment, commentRead, favorite } from '$lib/server/db/schema';
 import { eq, desc, count, sql, and, isNull } from 'drizzle-orm';
 
 export const GET: RequestHandler = async ({ locals }) => {
     try {
+        // Select topics and compute lastActivity as the latest comment.createdAt or the topic.createdAt
         const topics = await db
             .select({
                 id: topic.id,
@@ -13,10 +14,13 @@ export const GET: RequestHandler = async ({ locals }) => {
                 createdBy: user.displayName,
                 createdAt: topic.createdAt,
                 avatar: user.avatar,
+                lastActivity: sql<number>`COALESCE(MAX(${comment.createdAt}), ${topic.createdAt})`
             })
             .from(topic)
             .leftJoin(user, eq(topic.createdBy, user.id))
-            .orderBy(desc(topic.createdAt));
+            .leftJoin(comment, eq(comment.topicId, topic.id))
+            .groupBy(topic.id, topic.title, topic.createdAt, user.displayName, user.avatar)
+            .orderBy(desc(sql`COALESCE(MAX(${comment.createdAt}), ${topic.createdAt})`));
 
         // Fetch comment counts AND unread counts in a single query
         // Uses LEFT JOIN on commentRead to find which comments the user has read
@@ -89,8 +93,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             .returning();
 
         if (global.io) {
-            console.log('blah blah blah')
             global.io.emit('newTopic', { topic: { ...newTopic[0], createdBy: locals.user.displayName }, comment: newComment[0] });
+            global.io.emit('newComment', { ...newComment[0], createdBy: locals.user.displayName, avatar: locals.user.avatar });
         }
 
         return json({ topic: newTopic[0], comment: newComment[0] });
@@ -126,6 +130,12 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
         if (topicsToDelete[0].createdBy !== locals.user.id) {
             return json({ error: 'Forbidden' }, { status: 403 });
         }
+
+        //delete all favorites associated with this topic
+        await db
+            .delete(favorite)
+            .where(eq(favorite.topicId, id));
+
 
         //delete commendRead entries associated with comments of the topic
         const commentsToDelete = await db

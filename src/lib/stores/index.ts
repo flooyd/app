@@ -30,3 +30,12 @@ export const topicComments = writable<Array<{
     avatar: string | null;
     isRead?: boolean;
 }>>([])
+
+export interface Favorite {
+    id: number;
+    userId: number;
+    topicId: number;
+    favoritedAt: Date;
+}
+
+export const favorites = writable<Array<Favorite>>([]);

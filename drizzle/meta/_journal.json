@@ -36,6 +36,13 @@
       "when": 1766957526581,
       "tag": "0004_motionless_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1767142388418,
+      "tag": "0005_first_karma",
+      "breakpoints": true
     }
   ]
 }

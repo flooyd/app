@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CommentFooter from '$lib/components/CommentFooter.svelte';
 	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 	import { topicComments, user } from '$lib/stores/index';
 	import { getSocket } from '$lib/stores/socket';
 	import SmilePlus from '@lucide/svelte/icons/smile-plus';
@@ -100,7 +100,7 @@
 	onMount(() => {
 		fetchTopicDetails().then(() => {
 			ready = true;
-
+			
 			// Set up Intersection Observer after DOM is ready
 			setTimeout(() => {
 				observer = new IntersectionObserver(
@@ -233,8 +233,14 @@
 									{/if}
 
 									{#if editDrawerOpen}
-										<div class="edit-drawer">
-
+										<div class="edit-drawer" transition:fly={{y: 3000, duration: 300}}>
+											<div class='flex-section'>
+												<h1>Edit Comment</h1>
+												<button onclick={() => (editDrawerOpen = false)}>Cancel</button>
+												<button class='delete-button' onclick={handleDeleteComment(comment.id)}>Delete Comment</button>
+											</div>
+											<textarea bind:value={comment.content}></textarea>
+											<button>Save Changes</button>
 										</div>
 									{/if}
 								</div>
@@ -281,14 +287,6 @@
 		word-wrap: break-word;
 	}
 
-	button {
-		align-self: flex-end;
-		padding: 8px;
-		border: none;
-		cursor: pointer;
-		border: 3px solid brown;
-	}
-
 	.comment-footer {
 		border-top: 1px solid brown;
 		padding-top: 8px;
@@ -314,14 +312,24 @@
 	.react-drawer,
 	.edit-drawer {
 		position: absolute;
-		top: 0px;
+		top: 0;
 		right: 0;
-		background: white;
+		background: black;
 		border: 1px solid brown;
-		padding: 8px;
+		padding: 20px;
 		z-index: 10;
 		color: black;
-		min-height: 300px;
+		height: 100%;
+		width: 100%;
+	}
+
+	.delete-button {
+		margin-left: auto;
+	}
+
+	textarea {
+		margin-bottom: 8px;
+		margin-top: 8px;
 		min-width: 300px;
 	}
 </style>
