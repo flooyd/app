@@ -184,7 +184,7 @@
 
 <svelte:head>
 	<title>Topic Details</title>
-	<meta name="description" content={topicDetails?.title} />
+	<meta name="description" content={topicDetails?.title || "Please login to see the details."} />
 </svelte:head>
 
 {#if ready}
