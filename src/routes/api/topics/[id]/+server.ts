@@ -5,6 +5,10 @@ import { comment, topic, user, commentRead } from '$lib/server/db/schema';
 import { eq, asc, and, inArray } from 'drizzle-orm';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
+    if (!locals.user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const topicId = parseInt(params.id || '0', 10);
         if (isNaN(topicId) || topicId <= 0) {

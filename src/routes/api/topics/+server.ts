@@ -5,6 +5,10 @@ import { topic, user, comment, commentRead, favorite } from '$lib/server/db/sche
 import { eq, desc, count, sql, and, isNull } from 'drizzle-orm';
 
 export const GET: RequestHandler = async ({ locals }) => {
+    if (!locals.user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     try {
         // Select topics and compute lastActivity as the latest comment.createdAt or the topic.createdAt
         const topics = await db
