@@ -28,7 +28,7 @@
 </script>
 
 {#if ready}
-	<nav transition:fade>
+	<nav transition:fade={{duration: 250}}>
 		<a href="/"><h2>App</h2></a>
 		{#if $user}
 			<a href="/profile" style={$page === 'profile' ? 'color: lightgreen;' : ''}

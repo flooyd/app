@@ -60,7 +60,7 @@
 </script>
 
 {#if ready}
-	<div class="profile-container" transition:fade>
+	<div class="profile-container" transition:fade={{duration: 250}}>
 		{#if $user}
 			<h1>Profile</h1>
 			<button class='edit-button' type="button" onclick={handleEdit}>

@@ -188,7 +188,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class="comments-container" transition:fade>
+	<div class="comments-container" transition:fade={{duration: 250}}>
 		<h1>{topicDetails?.title}</h1>
 		{#if $topicComments.length > 0}
 			<ul>

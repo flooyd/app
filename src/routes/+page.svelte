@@ -7,6 +7,7 @@
 	import MoveUp from '@lucide/svelte/icons/move-up';
 	import MoveDown from '@lucide/svelte/icons/move-down';
 	import type { Topic } from '$lib/stores';
+	import { flip } from 'svelte/animate';
 
 	$page = 'home';
 
@@ -250,7 +251,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class="topics-container" transition:fade>
+	<div class="topics-container" transition:fade={{duration: 250}}>
 		{#if $user}
 			<div class="top-bar">
 				<div class="flex-section">
@@ -273,7 +274,7 @@
 
 			{#if cardView}
 				{#if showSettings}
-					<div class="settings" transition:fade>
+					<div class="settings" transition:fade={{duration: 250}}>
 						<button type="button" onclick={() => (showAvatars = !showAvatars)}>
 							{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
 						</button>
@@ -325,7 +326,7 @@
 
 			{#if !cardView}
 				{#if showSettings}
-					<div class="settings" transition:fade>
+					<div class="settings" transition:fade={{duration: 250}}>
 						<button type="button" onclick={() => (showAvatars = !showAvatars)}>
 							{showAvatars ? 'Hide Avatars' : 'Show Avatars'}
 						</button>
@@ -412,8 +413,8 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each $topics as topic}
-									<tr class="topic" onclick={() => goto(`/topics/${topic.id}`)}>
+								{#each $topics as topic (topic.id)}
+									<tr animate:flip={{duration: 250}} class="topic" onclick={() => goto(`/topics/${topic.id}`)}>
 										<td>{topic.title}</td>
 										<td>
 											<div class="td-flex">

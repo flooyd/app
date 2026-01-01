@@ -40,7 +40,7 @@
 </svelte:head>
 
 {#if ready}
-	<div class='create-topic-container' transition:fade>
+	<div class='create-topic-container' transition:fade={{duration: 250}}>
 		{#if $user}
 			<h1>Create a New Topic</h1>
 			<form onsubmit={(event) => handleSubmit(event)}>

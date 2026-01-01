@@ -44,7 +44,7 @@
 </script>
 
 {#if ready}
-	<div class='login-container' transition:fade>
+	<div class='login-container' transition:fade={{duration: 250}}>
 		{#if loginOrRegister === 'login'}
 			<h1>Login</h1>
 			<form onsubmit={handleLogin}>
