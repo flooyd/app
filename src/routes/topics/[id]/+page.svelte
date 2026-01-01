@@ -92,6 +92,7 @@
 		});
 		if (response.ok) {
 			console.log('Comment deleted:', commentId);
+			editDrawerOpen = false;
 		} else {
 			alert('Failed to delete comment');
 		}
@@ -330,6 +331,6 @@
 	textarea {
 		margin-bottom: 8px;
 		margin-top: 8px;
-		min-width: 300px;
+		min-width: 100%;
 	}
 </style>

@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { comment, commentRead } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { comment, commentRead, topic } from '$lib/server/db/schema';
+import { eq, desc} from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
     if (!locals.user) {
@@ -66,6 +66,20 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Forbidden' }, { status: 403 });
         }
 
+        //fetch the topic and set lastActivity to the latest comment's createdAt if needed. order by comment createdAt desc limit 1
+        const commentsToDelete = await db
+            .select()
+            .from(comment)
+            .where(eq(comment.id, commentId))
+            .limit(1);
+            
+        const topicToFind = await db
+            .select()
+            .from(topic)
+            .where(eq(topic.id, commentsToDelete[0].topicId))
+            .limit(1);
+
+
         // Delete all commentRead entries first (foreign key constraint)
         await db
             .delete(commentRead)
@@ -74,6 +88,15 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
         await db
             .delete(comment)
             .where(eq(comment.id, commentId));
+
+         const latestComment = await db
+            .select()
+            .from(comment)
+            .where(eq(comment.topicId, topicToFind[0].id))
+            .orderBy(desc(comment.createdAt))
+            .limit(1);
+
+        global.io?.emit('topicActivity', { topicId: topicToFind[0].id, lastActivity: latestComment.length > 0 ? latestComment[0].createdAt : topicToFind[0].createdAt });
 
         global.io?.emit('deleteComment', { commentId, topicId: existingComment[0].topicId });
         return json({ success: true });

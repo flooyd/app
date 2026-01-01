@@ -137,21 +137,8 @@
 		}
 	};
 
-	onMount(async () => {
-		showSettings = localStorage.getItem('showSettings') === 'true';
-		
-		const response = await fetch('/api/topics');
-		const data = await response.json();
-		
-		const favoritesResponse = await fetch('/api/topics/favorites');
-		const favData = await favoritesResponse.json();
-		$favorites = favData.favorites || [];
-
-		console.log('favorites', $favorites);
-
-		$topics = data.topics;
-		$topics.forEach((topic: Topic) => {
-			// commentCount: server may return comment stats (with .count) or a list of comments
+	const setCommentUnreadAndLastCommentAt = (topic:Topic, data: any) => {
+		// commentCount: server may return comment stats (with .count) or a list of comments
 			const commentEntries = (data.comments || []).filter((c: any) => c.topicId === topic.id);
 
 			if (commentEntries.length && commentEntries[0].count !== undefined) {
@@ -165,6 +152,26 @@
 
 			// Prefer server-provided lastActivity (epoch ms) if available, otherwise fall back to topic.createdAt
 			(topic as any).lastCommentAt = (topic as any).lastActivity ?? (typeof topic.createdAt === 'number' ? topic.createdAt : Date.parse(topic.createdAt as any));
+	}
+
+	onMount(async () => {
+		showSettings = localStorage.getItem('showSettings') === 'true';
+		if(!$user) {
+			ready = true;
+			return;
+		}
+		const response = await fetch('/api/topics');
+		const data = await response.json();
+		
+		const favoritesResponse = await fetch('/api/topics/favorites');
+		const favData = await favoritesResponse.json();
+		$favorites = favData.favorites || [];
+
+		console.log('favorites', $favorites);
+
+		$topics = data.topics;
+		$topics?.forEach((topic: Topic) => {
+			setCommentUnreadAndLastCommentAt(topic, data);
 		});
 		$topics = $topics;
 		console.log($topics);
@@ -209,20 +216,20 @@
 				if (idx === -1) return;
 				$topics[idx].commentCount = Math.max(0, ($topics[idx].commentCount || 0) - 1);
 				$topics[idx].unreadCount = Math.max(0, ($topics[idx].unreadCount || 0) - 1);
+				
 				$topics = $topics;
 			});
 
 			// Update topic ordering/activity when comments are created elsewhere
 			socket.on('topicActivity', (data) => {
+				console.log('topicActivity received:', data);
 				const { topicId, lastActivity } = data as { topicId: number; lastActivity: number };
 				const idx = $topics.findIndex((t: Topic) => t.id === topicId);
 				if (idx !== -1) {
 					($topics[idx] as any).lastCommentAt = lastActivity;
 					// Only reorder if user hasn't chosen an explicit sort column
 					if (!sortColumn) {
-						// move the updated topic to the top
-						const [updated] = $topics.splice(idx, 1);
-						$topics = [updated, ...$topics];
+						sortTopics();
 					}
 				}
 			});
@@ -414,7 +421,7 @@
 							</thead>
 							<tbody>
 								{#each $topics as topic (topic.id)}
-									<tr animate:flip={{duration: 250}} class="topic" onclick={() => goto(`/topics/${topic.id}`)}>
+									<tr animate:flip={{duration: 1000}} class="topic" onclick={() => goto(`/topics/${topic.id}`)}>
 										<td>{topic.title}</td>
 										<td>
 											<div class="td-flex">
